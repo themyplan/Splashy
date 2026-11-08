@@ -1,7 +1,18 @@
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
-/// %PICTURE_DIR%/unsplash-wallpapers
+static BASE_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+#[allow(dead_code)]
+pub fn init_base_dir(dir: PathBuf) {
+    let _ = BASE_DIR.set(dir);
+}
+
+/// %PICTURE_DIR%/unsplash-wallpapers (or the stored base dir on mobile)
 pub fn root_dir() -> Result<PathBuf, String> {
+    if let Some(base) = BASE_DIR.get() {
+        return Ok(base.clone());
+    }
     let pictures = dirs::picture_dir()
         .ok_or("Could not locate Pictures directory")?;
     Ok(pictures.join("unsplash-wallpapers"))

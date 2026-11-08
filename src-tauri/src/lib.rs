@@ -126,6 +126,12 @@ pub fn run() {
                 }
             }
 
+            #[cfg(mobile)]
+            {
+                let dir = app.path().app_data_dir()?;
+                crate::fs::paths::init_base_dir(dir);
+            }
+
             scheduler::run_startup_sync();
             scheduler::start_wallpaper_scheduler(app.handle().clone());
 
