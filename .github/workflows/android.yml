@@ -41,6 +41,9 @@ jobs:
             npm run tauri android init
           fi
 
+      - name: Diagnostic - who needs openssl?
+        continue-on-error: true
+        run: cargo tree --manifest-path src-tauri/Cargo.toml --target aarch64-linux-android -i openssl-sys
       - name: Build APK
         run: npm run tauri android build -- --debug --apk true --target aarch64
 
