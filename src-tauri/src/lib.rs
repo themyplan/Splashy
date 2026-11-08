@@ -114,15 +114,15 @@ pub fn run() {
                 }
             }
 
-            // Show window on normal launch; skip if auto-started with --hidden
+            // Show window on normal launch; skip if auto-started with --hidden.
+            // Desktop only: on Android the window is the Activity and is always shown.
             #[cfg(desktop)]
-            let is_autostart = std::env::args().any(|a| a == "--hidden");
-            #[cfg(not(desktop))]
-            let is_autostart = false;
-
-            if !is_autostart {
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.show();
+            {
+                let is_autostart = std::env::args().any(|a| a == "--hidden");
+                if !is_autostart {
+                    if let Some(w) = app.get_webview_window("main") {
+                        let _ = w.show();
+                    }
                 }
             }
 
