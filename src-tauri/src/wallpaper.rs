@@ -259,32 +259,42 @@ fn compute_next_fire_time(cron_expr: &str) -> Option<NaiveTime> {
 
 /// Set the desktop wallpaper to the file at `path`.
 pub fn set_wallpaper(path: &PathBuf, prev_path: Option<&PathBuf>) -> Result<(), String> {
-    let path_str = path
-        .canonicalize()
-        .map_err(|e| format!("Failed to canonicalize path: {}", e))?
-        .to_string_lossy()
-        .to_string();
-    let path_str = path_str
-        .strip_prefix(r"\\?\")
-        .unwrap_or(&path_str)
-        .to_string();
-
-    #[cfg(target_os = "macos")]
+    #[cfg(target_os = "android")]
     {
-        let prev_str = prev_path
-            .filter(|p| p.exists())
-            .and_then(|p| p.canonicalize().ok())
-            .map(|p| p.to_string_lossy().to_string());
-        return set_wallpaper_macos(&path_str, prev_str.as_deref());
+        let _ = (path, prev_path);
+        return Err("Setting the wallpaper is not supported on Android yet".to_string());
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(target_os = "android"))]
     {
-        wallpaper::set_from_path(&path_str)
-            .map_err(|e| format!("Failed to set wallpaper: {}", e))?;
-        wallpaper::set_mode(wallpaper::Mode::Crop)
-            .map_err(|e| format!("Failed to set wallpaper mode: {}", e))?;
-        Ok(())
+        let path_str = path
+            .canonicalize()
+            .map_err(|e| format!("Failed to canonicalize path: {}", e))?
+            .to_string_lossy()
+            .to_string();
+        let path_str = path_str
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&path_str)
+            .to_string();
+
+        #[cfg(target_os = "macos")]
+        {
+            let prev_str = prev_path
+                .filter(|p| p.exists())
+                .and_then(|p| p.canonicalize().ok())
+                .map(|p| p.to_string_lossy().to_string());
+            return set_wallpaper_macos(&path_str, prev_str.as_deref());
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = prev_path;
+            wallpaper::set_from_path(&path_str)
+                .map_err(|e| format!("Failed to set wallpaper: {}", e))?;
+            wallpaper::set_mode(wallpaper::Mode::Crop)
+                .map_err(|e| format!("Failed to set wallpaper mode: {}", e))?;
+            Ok(())
+        }
     }
 }
 
