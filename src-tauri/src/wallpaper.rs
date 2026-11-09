@@ -261,8 +261,14 @@ fn compute_next_fire_time(cron_expr: &str) -> Option<NaiveTime> {
 pub fn set_wallpaper(path: &PathBuf, prev_path: Option<&PathBuf>) -> Result<(), String> {
     #[cfg(target_os = "android")]
     {
-        let _ = (path, prev_path);
-        return Err("Setting the wallpaper is not supported on Android yet".to_string());
+        use tauri_plugin_splashy_wallpaper::SplashyWallpaperExt;
+        let app = crate::APP_HANDLE
+            .get()
+            .ok_or_else(|| "App handle not ready".to_string())?;
+        app.splashy_wallpaper()
+            .set_wallpaper(&path)
+            .map_err(|e| e.to_string())?;
+        return Ok(());
     }
 
     #[cfg(not(target_os = "android"))]

@@ -8,6 +8,8 @@ mod wallpaper;
 
 use tauri::Manager;
 
+pub static APP_HANDLE: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+
 #[cfg(desktop)]
 #[allow(unused_imports)]
 use tauri::{
@@ -59,8 +61,16 @@ pub fn run() {
             });
     }
 
+    // Android-only wallpaper plugin (mobile only; desktop uses the `wallpaper` crate)
+    #[cfg(mobile)]
+    {
+        builder = builder.plugin(tauri_plugin_splashy_wallpaper::init());
+    }
+
     builder
         .setup(|app| {
+            let _ = APP_HANDLE.set(app.handle().clone());
+
             #[cfg(target_os = "macos")]
             {
                 let splashy_refresh_item = MenuItem::with_id(
