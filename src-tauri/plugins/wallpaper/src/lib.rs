@@ -17,6 +17,16 @@ struct SetWallpaperArgs {
     path: String,
 }
 
+#[cfg(target_os = "android")]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ScheduleArgs {
+    interval_minutes: u32,
+    settings_path: String,
+    plan_json: String,
+    replace: bool,
+}
+
 pub struct SplashyWallpaper<R: Runtime> {
     #[cfg(target_os = "android")]
     handle: PluginHandle<R>,
@@ -40,6 +50,50 @@ impl<R: Runtime> SplashyWallpaper<R> {
         #[cfg(not(target_os = "android"))]
         {
             let _ = path;
+            Err("splashy-wallpaper plugin is only available on Android".to_string())
+        }
+    }
+
+    /// Starts/updates the WorkManager periodic job (min 15 minutes, enforced on the Kotlin side).
+    /// `plan_json` is an opaque JSON plan (targets, time groups, fallback) built by the app.
+    /// `replace=false` keeps an existing job's timer; `true` applies the new interval.
+    pub fn schedule_auto(
+        &self,
+        interval_minutes: u32,
+        settings_path: impl AsRef<std::path::Path>,
+        plan_json: String,
+        replace: bool,
+    ) -> Result<(), String> {
+        #[cfg(target_os = "android")]
+        {
+            let args = ScheduleArgs {
+                interval_minutes,
+                settings_path: settings_path.as_ref().to_string_lossy().into_owned(),
+                plan_json,
+                replace,
+            };
+            self.handle
+                .run_mobile_plugin::<serde_json::Value>("scheduleAutoWallpaper", args)
+                .map(|_| ())
+                .map_err(|e| e.to_string())
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            let _ = (interval_minutes, settings_path, plan_json, replace);
+            Err("splashy-wallpaper plugin is only available on Android".to_string())
+        }
+    }
+
+    pub fn cancel_auto(&self) -> Result<(), String> {
+        #[cfg(target_os = "android")]
+        {
+            self.handle
+                .run_mobile_plugin::<serde_json::Value>("cancelAutoWallpaper", serde_json::json!({}))
+                .map(|_| ())
+                .map_err(|e| e.to_string())
+        }
+        #[cfg(not(target_os = "android"))]
+        {
             Err("splashy-wallpaper plugin is only available on Android".to_string())
         }
     }

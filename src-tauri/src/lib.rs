@@ -1,4 +1,5 @@
 mod api;
+mod auto_wallpaper;
 mod fs;
 mod getter;
 mod scheduler;
@@ -142,8 +143,28 @@ pub fn run() {
                 crate::fs::paths::init_base_dir(dir);
             }
 
+            // Android auto-rotation: start the WorkManager periodic job (15 min).
+            // Separate thread: the plugin call blocks until Kotlin answers.
+            #[cfg(target_os = "android")]
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    if let Err(e) = auto_wallpaper::enable(
+                        &handle,
+                        auto_wallpaper::DEFAULT_INTERVAL_MINUTES,
+                        false,
+                    ) {
+                        eprintln!("[auto-wallpaper] {e}");
+                    }
+                });
+            }
+
             scheduler::run_startup_sync();
-            scheduler::start_wallpaper_scheduler(app.handle().clone());
+            // Desktop only: on mobile WorkManager owns the schedule (auto_wallpaper::enable).
+            #[cfg(desktop)]
+            {
+                scheduler::start_wallpaper_scheduler(app.handle().clone());
+            }
 
             // System tray + hide-on-close (desktop only)
             #[cfg(desktop)]
@@ -241,6 +262,8 @@ pub fn run() {
             api::time_groups::get_time_groups,
             api::time_groups::set_target_groups,
             api::batch::batch_toggle_sources,
+            auto_wallpaper::schedule_auto_wallpaper,
+            auto_wallpaper::cancel_auto_wallpaper,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
